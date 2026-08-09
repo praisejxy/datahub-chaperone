@@ -111,12 +111,39 @@ DEFAULT_SCENARIO: list[ToolCall] = [
 ]
 
 
+SCENARIO_DIR = Path(__file__).parent / "scenarios"
+
+
+def bundled_scenarios() -> list[str]:
+    """Names of the scenarios that ship inside the package."""
+    return sorted(p.stem for p in SCENARIO_DIR.glob("*.json"))
+
+
+def resolve_scenario(name_or_path: str) -> Path:
+    """Accept either a bundled scenario name or a path to a JSON file.
+
+    A name is tried first so ``--scenario walkthrough`` works from any working
+    directory, including from an installed wheel where the repository is not on
+    disk at all.
+    """
+    bundled = SCENARIO_DIR / f"{name_or_path}.json"
+    if bundled.is_file():
+        return bundled
+    path = Path(name_or_path)
+    if path.is_file():
+        return path
+    raise FileNotFoundError(
+        f"no scenario {name_or_path!r}; expected a file path or one of: "
+        f"{', '.join(bundled_scenarios()) or '(none bundled)'}"
+    )
+
+
 def load_scenario(path: Path | str) -> list[ToolCall]:
     """Load a scenario from JSON.
 
     Accepts either a bare list of call objects or ``{"calls": [...]}``.
     """
-    raw = json.loads(Path(path).read_text(encoding="utf-8"))
+    raw = json.loads(resolve_scenario(str(path)).read_text(encoding="utf-8"))
     entries = raw.get("calls", raw) if isinstance(raw, dict) else raw
     if not isinstance(entries, list):
         raise ValueError("A scenario file must contain a list of tool calls.")

@@ -1,0 +1,8 @@
+[
+ {"tool":"search","arguments":{"query":"tables with no description"},"intent":"Find tables that need documentation"},
+ {"tool":"update_description","arguments":{"urn":"urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)","description":"Line items for each order."},"intent":"Document order_items - a low-risk leaf table"},
+ {"tool":"get_entities","arguments":{"urns":["urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)"]},"intent":"Read the customers table"},
+ {"tool":"update_description","arguments":{"urn":"urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)","description":"Order fact table."},"intent":"Rewrite the fct_orders description"},
+ {"tool":"update_description","arguments":{"urn":"urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.support_tickets,PROD)","description":"Support tickets."},"intent":"Document the unowned support_tickets table"},
+ {"tool":"update_description","arguments":{"urn":"urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.marts.dim_customer,PROD)","description":"Customer dimension."},"intent":"Document dim_customer (note the singular - this URN is wrong)"}
+]

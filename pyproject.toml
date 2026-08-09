@@ -47,6 +47,7 @@ include = [
   "src/chaperone/**/*.py",
   "src/chaperone/policies/*.yaml",
   "src/chaperone/fixtures/*.json",
+  "src/chaperone/scenarios/*.json",
 ]
 
 [tool.pytest.ini_options]

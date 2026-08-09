@@ -331,8 +331,9 @@ def doctor(offline, fixture, policy_files, pack) -> None:
 
 @main.command()
 @graph_options
-@click.option("--scenario", type=click.Path(exists=True, dir_okay=False),
-              help="A JSON list of tool calls to replay. Defaults to the bundled scenario.")
+@click.option("--scenario", metavar="NAME_OR_PATH",
+              help="A bundled scenario name or a JSON file of tool calls to replay. "
+                   "Defaults to the full built-in session.")
 @click.option("--write-examples", type=click.Path(file_okay=False),
               help="Write the decision log and summary to this directory.")
 @click.option("--pace", type=float, default=0.0, metavar="SECONDS",
@@ -346,7 +347,10 @@ def demo(offline, fixture, policy_files, pack, scenario, write_examples, pace) -
     from chaperone.scenarios import DEFAULT_SCENARIO, load_scenario
 
     engine = _load_engine(offline, fixture, policy_files, pack)
-    calls = load_scenario(scenario) if scenario else DEFAULT_SCENARIO
+    try:
+        calls = load_scenario(scenario) if scenario else DEFAULT_SCENARIO
+    except (FileNotFoundError, ValueError) as exc:
+        raise click.BadParameter(str(exc), param_hint="--scenario") from exc
     audit = AuditLog(
         path=(Path(write_examples) / "decisions.jsonl") if write_examples else None,
         agent_id="catalog-steward-agent",
