@@ -81,10 +81,22 @@ class AuditLog:
         self._handle.flush()
 
     def _track_assets(self, decision: Decision) -> None:
+        """Attribute the call's targets to read / written / blocked.
+
+        Targets the catalog says do not exist are skipped. Everything tracked
+        here is later written back to DataHub - blocked assets get tagged, read
+        and written ones become agent lineage - and emitting an aspect against
+        an unknown urn *creates* that entity. Tracking a hallucinated urn would
+        therefore make Chaperone commit the very thing
+        ``unknown-asset-mutation-deny`` exists to refuse.
+        """
         from chaperone.policy import MUTATION_TOOLS
 
+        missing = {ctx.urn for ctx in decision.contexts if not ctx.exists}
         is_write = decision.call.tool in MUTATION_TOOLS
         for urn in decision.call.targets():
+            if urn in missing:
+                continue
             if decision.blocked:
                 self._touched["blocked"].add(urn)
             elif is_write:

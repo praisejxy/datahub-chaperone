@@ -1,5 +1,5 @@
 {
-  "session": "090e5d105f2a",
+  "session": "cc3edb1d8c1e",
   "agent": "catalog-steward-agent",
   "total_calls": 12,
   "verdicts": {
@@ -21,8 +21,7 @@
     "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)",
     "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)",
     "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.support_tickets,PROD)",
-    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.legacy.orders_snapshot_2023,PROD)",
-    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.marts.dim_customer,PROD)"
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.legacy.orders_snapshot_2023,PROD)"
   ],
   "proposals": 4
 }

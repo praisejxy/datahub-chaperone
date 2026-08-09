@@ -4,16 +4,16 @@
     "aspectName": "aiAgentInfo",
     "aspect": {
       "name": "Catalog Steward Agent",
-      "description": "Governed by Chaperone 0.1.0. Session 090e5d105f2a: 12 tool calls, 4 proposal(s) raised.",
+      "description": "Governed by Chaperone 0.1.0. Session cc3edb1d8c1e: 12 tool calls, 4 proposal(s) raised.",
       "source": {
         "type": "EXTERNAL"
       },
       "created": {
-        "time": 1786273687030,
+        "time": 1786275152270,
         "actor": "urn:li:corpuser:datahub"
       },
       "lastModified": {
-        "time": 1786273687030,
+        "time": 1786275152270,
         "actor": "urn:li:corpuser:datahub"
       }
     }
@@ -36,7 +36,7 @@
       "upstreams": [
         {
           "auditStamp": {
-            "time": 1786273687030,
+            "time": 1786275152270,
             "actor": "urn:li:corpuser:datahub"
           },
           "dataset": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)",
@@ -44,7 +44,7 @@
         },
         {
           "auditStamp": {
-            "time": 1786273687030,
+            "time": 1786275152270,
             "actor": "urn:li:corpuser:datahub"
           },
           "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)",
@@ -52,7 +52,7 @@
         },
         {
           "auditStamp": {
-            "time": 1786273687030,
+            "time": 1786275152270,
             "actor": "urn:li:corpuser:datahub"
           },
           "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)",

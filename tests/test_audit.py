@@ -172,6 +172,42 @@ def test_only_dataset_urns_become_lineage(log, engine):
     assert log.consumed_datasets() == []
 
 
+def test_a_hallucinated_urn_is_never_tracked_for_writeback(log, engine):
+    """An asset that does not exist must not reach the writeback.
+
+    Everything tracked here is later emitted to DataHub - blocked assets get
+    tagged, read and written ones become agent lineage - and emitting an aspect
+    against an unknown urn *creates* that entity. So tracking a urn the agent
+    hallucinated would have Chaperone quietly create the asset it had just
+    refused to touch, which is the worst possible failure: the refusal is
+    reported to the agent and then undone behind its back.
+    """
+    ghost = "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.marts.dim_customer,PROD)"
+    decision = engine.evaluate(
+        ToolCall(tool="update_description", arguments={"urn": ghost}, agent_id="test-agent")
+    )
+    assert decision.verdict is Verdict.DENY
+    assert any(not ctx.exists for ctx in decision.contexts), "fixture should not contain this urn"
+
+    log.record(decision)
+
+    summary = log.summary()
+    assert ghost not in summary["assets_blocked"]
+    assert ghost not in summary["assets_read"]
+    assert ghost not in summary["assets_written"]
+    assert ghost not in log.consumed_datasets()
+
+
+def test_a_real_blocked_asset_is_still_tracked(log, engine):
+    """The guard above must not silence genuine blocks."""
+    decision = engine.evaluate(
+        ToolCall(tool="update_description", arguments={"urn": CUSTOMERS}, agent_id="test-agent")
+    )
+    assert decision.blocked
+    log.record(decision)
+    assert CUSTOMERS in log.summary()["assets_blocked"]
+
+
 def test_a_review_preserves_the_agents_work(log, engine):
     """A blocked call that discards the agent's intent just makes it retry."""
     call = ToolCall(
