@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 import click
@@ -264,7 +265,9 @@ def doctor(offline, fixture, policy_files, pack) -> None:
               help="A JSON list of tool calls to replay. Defaults to the bundled scenario.")
 @click.option("--write-examples", type=click.Path(file_okay=False),
               help="Write the decision log and summary to this directory.")
-def demo(offline, fixture, policy_files, pack, scenario, write_examples) -> None:
+@click.option("--pace", type=float, default=0.0, metavar="SECONDS",
+              help="Pause between decisions, so the replay can be followed live.")
+def demo(offline, fixture, policy_files, pack, scenario, write_examples, pace) -> None:
     """Replay a scripted agent session and show every decision.
 
     This is the fastest way to see what Chaperone does. It needs no agent, no
@@ -287,6 +290,10 @@ def demo(offline, fixture, policy_files, pack, scenario, write_examples) -> None
     ))
 
     for index, call in enumerate(calls, start=1):
+        # Pause before the decision, not after, so the last one does not leave a
+        # trailing dead beat at the end of the replay.
+        if pace and index > 1:
+            time.sleep(pace)
         decision = engine.evaluate(call)
         audit.record(decision)
         if decision.verdict is Verdict.REVIEW:
