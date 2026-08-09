@@ -1,0 +1,186 @@
+name: default
+description: >
+  Baseline guardrails for an AI agent operating on a DataHub catalog. Every rule
+  decides using metadata the catalog already holds - tags, glossary terms, tiers,
+  ownership and lineage - so governance that data stewards have already curated
+  starts applying to agents without anyone re-encoding it in prompt text.
+
+rules:
+  # ---------------------------------------------------------------------
+  # Sensitive data. The catalog already knows which columns are sensitive;
+  # an agent should not be the reason that knowledge stops mattering.
+  # ---------------------------------------------------------------------
+  - id: pii-read-redact
+    verdict: redact
+    severity: high
+    message: >
+      `{name}` is tagged [{tags}]. Values are redacted before reaching the agent;
+      schema and lineage still pass through so the agent can keep working.
+    when:
+      # Reads only. Redaction is about what flows back to the agent, so pairing
+      # it with a write would attach a misleading reason to a blocked mutation.
+      tools: ["*read*"]
+      has_any_label: [PII, Sensitive, Confidential, PersonalInformation]
+    redact_fields:
+      - email
+      - phone
+      - phone_number
+      - ssn
+      - social_security_number
+      - address
+      - street_address
+      - date_of_birth
+      - dob
+      - full_name
+      - first_name
+      - last_name
+      - credit_card
+      - card_number
+      - ip_address
+      - passport_number
+
+  # Note the asymmetry with `pii-classification-encouraged` below: an agent may
+  # freely *add* a protective classification, but not weaken or relabel one.
+  # A policy that blocks every write to sensitive assets teaches agents to stop
+  # reporting sensitive data, which is the opposite of what governance wants.
+  - id: pii-mutation-deny
+    verdict: deny
+    severity: critical
+    message: >
+      Refusing `{tool}` on `{name}`: it is tagged [{tags}], and changing the
+      metadata of sensitive assets is reserved for its owners ({owners}).
+    when:
+      tools:
+        - update_description
+        - set_domains
+        - set_lifecycle_stage
+        - save_document
+        - add_structured_properties
+        - remove_structured_properties
+      has_any_label: [PII, Sensitive, Confidential]
+
+  - id: pii-declassification-deny
+    verdict: deny
+    severity: critical
+    message: >
+      Refusing `{tool}` on `{name}`: removing a classification from an asset
+      tagged [{tags}] would silently widen access to sensitive data. Only an
+      owner ({owners}) can declassify.
+    when:
+      tools: ["*removal*"]
+      has_any_label: [PII, Sensitive, Confidential, PersonalInformation]
+
+  - id: pii-classification-encouraged
+    verdict: allow
+    severity: info
+    message: >
+      Adding a classification to `{name}` strengthens governance rather than
+      weakening it, so it is allowed even though the asset is sensitive.
+    when:
+      tools: [add_tags, add_glossary_terms, add_terms, add_owners]
+      has_any_label: [PII, Sensitive, Confidential, PersonalInformation]
+
+  # ---------------------------------------------------------------------
+  # Blast radius. Editing a leaf table is cheap. Editing something that
+  # feeds forty assets is not, no matter how correct the edit looks.
+  #
+  # These rules key off *hop distance*, not total descendant count. In a
+  # connected warehouse the transitive count saturates - a leaf staging table
+  # and a core fact table both eventually reach the executive dashboard - so a
+  # threshold on total reach stops discriminating and reviews everything. A
+  # policy that reviews everything is as useless as one that reviews nothing.
+  # ---------------------------------------------------------------------
+  - id: high-blast-radius-review
+    verdict: review
+    severity: high
+    message: >
+      `{name}` is read directly by {direct} assets and reaches {downstream} in
+      total ({breakdown}). Routing `{tool}` to a human owner instead of
+      applying it directly.
+    when:
+      tools: ["*mutation*"]
+      min_direct_downstream: 3
+
+  - id: tier1-mutation-review
+    verdict: review
+    severity: high
+    message: >
+      `{name}` is {tier}. Tier-1 assets change through review, so `{tool}` has
+      been captured as a proposal rather than applied.
+    when:
+      tools: ["*mutation*"]
+      tier_in: [Tier1, "Tier 1", CRITICAL, GOLD]
+
+  # `within_hops: 2` is the point of the hop-aware graph: a feature table two
+  # hops down means this asset is on the training path. Five hops down does not.
+  - id: ml-downstream-review
+    verdict: review
+    severity: critical
+    message: >
+      `{name}` feeds production ML ({matched}). Metadata changes here can
+      silently invalidate features and deployed models, so `{tool}` needs a
+      human owner.
+    when:
+      tools: ["*mutation*"]
+      downstream_type_in: [mlFeatureTable, mlModel, mlPrimaryKey, mlModelGroup]
+      within_hops: 2
+
+  # Advisory only, and scoped to writes on assets a dashboard reads *directly*:
+  # transitively this fires on nearly every asset in a connected warehouse,
+  # which trains the reader to skip reasons.
+  - id: dashboard-downstream-notice
+    verdict: allow
+    severity: low
+    message: >
+      Note: `{name}` is read directly by {direct_breakdown}. Changes here
+      surface to business users.
+    when:
+      tools: ["*mutation*"]
+      downstream_type_in: [dashboard, chart]
+      within_hops: 1
+
+  # ---------------------------------------------------------------------
+  # Destructive and unowned edits.
+  # ---------------------------------------------------------------------
+  - id: removal-needs-review
+    verdict: review
+    severity: high
+    message: >
+      `{tool}` removes existing curated metadata from `{name}`. Removals are
+      hard to notice after the fact, so this needs an owner's sign-off.
+    when:
+      tools: ["*removal*"]
+
+  - id: unowned-asset-review
+    verdict: review
+    severity: medium
+    message: >
+      `{name}` has no owner, so no human would be notified if `{tool}` were
+      wrong. Held for triage.
+    when:
+      tools: ["*mutation*"]
+      unowned: true
+
+  - id: deprecated-asset-warn
+    verdict: allow
+    severity: medium
+    message: >
+      `{name}` is marked deprecated in DataHub. Prefer its replacement before
+      building anything new on it.
+    when:
+      deprecated: true
+
+  # ---------------------------------------------------------------------
+  # Unknown assets. Reads are allowed (the catalog is never complete), but
+  # a write to something the catalog has never heard of is a strong signal
+  # of a hallucinated URN.
+  # ---------------------------------------------------------------------
+  - id: unknown-asset-mutation-deny
+    verdict: deny
+    severity: high
+    message: >
+      `{urn}` does not exist in DataHub. Refusing `{tool}` rather than creating
+      metadata against an unverifiable asset - check the URN with `search` first.
+    when:
+      tools: ["*mutation*"]
+      unknown_asset: true

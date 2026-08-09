@@ -1,0 +1,283 @@
+{
+  "name": "showcase-ecommerce (offline slice)",
+  "description": "A small but realistic slice of an e-commerce data stack: raw Postgres sources, dbt marts, a Looker dashboard layer, and an ML feature table feeding a deployed churn model. Tags, tiers, ownership and lineage mirror DataHub's own conventions so policies written here transfer unchanged to a live instance.",
+  "assets": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)",
+      "type": "dataset",
+      "name": "customers",
+      "platform": "postgres",
+      "description": "Raw customer records replicated from the transactional database. Contains direct identifiers.",
+      "tags": ["PII", "Tier1"],
+      "glossary_terms": ["PersonalInformation", "CustomerData"],
+      "owners": ["urn:li:corpGroup:data-platform"],
+      "domain": "Customer",
+      "tier": "Tier1",
+      "query_count": 1840,
+      "upstreams": []
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.orders,PROD)",
+      "type": "dataset",
+      "name": "orders",
+      "platform": "postgres",
+      "description": "Raw order headers, one row per placed order.",
+      "tags": ["Tier1"],
+      "glossary_terms": ["TransactionData"],
+      "owners": ["urn:li:corpGroup:data-platform"],
+      "domain": "Sales",
+      "tier": "Tier1",
+      "query_count": 2310,
+      "upstreams": []
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)",
+      "type": "dataset",
+      "name": "order_items",
+      "platform": "postgres",
+      "description": "Line items belonging to an order.",
+      "tags": [],
+      "glossary_terms": ["TransactionData"],
+      "owners": ["urn:li:corpGroup:data-platform"],
+      "domain": "Sales",
+      "tier": "Tier2",
+      "query_count": 990,
+      "upstreams": []
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.support_tickets,PROD)",
+      "type": "dataset",
+      "name": "support_tickets",
+      "platform": "postgres",
+      "description": "Customer support tickets including free-text bodies that frequently contain personal data.",
+      "tags": ["PII", "Confidential"],
+      "glossary_terms": ["PersonalInformation"],
+      "owners": [],
+      "domain": "Support",
+      "tier": "Tier2",
+      "query_count": 120,
+      "upstreams": []
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)",
+      "type": "dataset",
+      "name": "stg_customers",
+      "platform": "dbt",
+      "description": "Lightly cleaned customer staging model. Still carries email and full name.",
+      "tags": ["PII"],
+      "glossary_terms": ["PersonalInformation"],
+      "owners": ["urn:li:corpGroup:analytics-eng"],
+      "domain": "Customer",
+      "tier": "Tier2",
+      "query_count": 410,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_orders,PROD)",
+      "type": "dataset",
+      "name": "stg_orders",
+      "platform": "dbt",
+      "description": "Cleaned order staging model.",
+      "tags": [],
+      "glossary_terms": ["TransactionData"],
+      "owners": ["urn:li:corpGroup:analytics-eng"],
+      "domain": "Sales",
+      "tier": "Tier2",
+      "query_count": 780,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.orders,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.dim_customers,PROD)",
+      "type": "dataset",
+      "name": "dim_customers",
+      "platform": "dbt",
+      "description": "Customer dimension. The canonical customer table for analytics; email is hashed here.",
+      "tags": ["Tier1"],
+      "glossary_terms": ["CustomerData"],
+      "owners": ["urn:li:corpGroup:analytics-eng", "urn:li:corpuser:priya"],
+      "domain": "Customer",
+      "tier": "Tier1",
+      "query_count": 3120,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)",
+      "type": "dataset",
+      "name": "fct_orders",
+      "platform": "dbt",
+      "description": "Order fact table at order grain. Feeds revenue reporting and the churn feature pipeline.",
+      "tags": ["Tier1"],
+      "glossary_terms": ["Revenue", "TransactionData"],
+      "owners": ["urn:li:corpGroup:analytics-eng"],
+      "domain": "Sales",
+      "tier": "Tier1",
+      "query_count": 4200,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_orders,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.dim_customers,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.customer_ltv,PROD)",
+      "type": "dataset",
+      "name": "customer_ltv",
+      "platform": "dbt",
+      "description": "Lifetime-value aggregates per customer.",
+      "tags": [],
+      "glossary_terms": ["Revenue"],
+      "owners": ["urn:li:corpGroup:analytics-eng"],
+      "domain": "Customer",
+      "tier": "Tier2",
+      "query_count": 640,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.reporting.revenue_daily,PROD)",
+      "type": "dataset",
+      "name": "revenue_daily",
+      "platform": "snowflake",
+      "description": "Daily revenue rollup used by the executive dashboard.",
+      "tags": ["Tier1"],
+      "glossary_terms": ["Revenue"],
+      "owners": ["urn:li:corpGroup:finance-analytics"],
+      "domain": "Finance",
+      "tier": "Tier1",
+      "query_count": 2050,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.legacy.orders_snapshot_2023,PROD)",
+      "type": "dataset",
+      "name": "orders_snapshot_2023",
+      "platform": "snowflake",
+      "description": "Frozen 2023 order snapshot. Superseded by fct_orders.",
+      "tags": [],
+      "glossary_terms": [],
+      "owners": [],
+      "domain": "Sales",
+      "tier": null,
+      "deprecated": true,
+      "query_count": 3,
+      "upstreams": []
+    },
+    {
+      "urn": "urn:li:mlFeatureTable:(urn:li:dataPlatform:feast,churn_features)",
+      "type": "mlFeatureTable",
+      "name": "churn_features",
+      "platform": "feast",
+      "description": "Feature table for the churn model: recency, frequency, monetary value per customer.",
+      "tags": ["Tier1"],
+      "glossary_terms": [],
+      "owners": ["urn:li:corpGroup:ml-platform"],
+      "domain": "DataScience",
+      "tier": "Tier1",
+      "query_count": 88,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.customer_ltv,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn_predictor_v4,PROD)",
+      "type": "mlModel",
+      "name": "churn_predictor_v4",
+      "platform": "mlflow",
+      "description": "Gradient-boosted churn classifier serving the retention campaign. Trained 2026-06-01.",
+      "tags": ["Tier1"],
+      "glossary_terms": [],
+      "owners": ["urn:li:corpGroup:ml-platform", "urn:li:corpuser:dmitri"],
+      "domain": "DataScience",
+      "tier": "Tier1",
+      "query_count": 0,
+      "upstreams": [
+        "urn:li:mlFeatureTable:(urn:li:dataPlatform:feast,churn_features)"
+      ]
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,exec_revenue_overview)",
+      "type": "dashboard",
+      "name": "Executive Revenue Overview",
+      "platform": "looker",
+      "description": "Board-level revenue dashboard reviewed weekly by the exec team.",
+      "tags": ["Tier1"],
+      "glossary_terms": ["Revenue"],
+      "owners": ["urn:li:corpGroup:finance-analytics"],
+      "domain": "Finance",
+      "tier": "Tier1",
+      "query_count": 0,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.reporting.revenue_daily,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,customer_360)",
+      "type": "dashboard",
+      "name": "Customer 360",
+      "platform": "looker",
+      "description": "Per-customer view used by the support and success teams.",
+      "tags": [],
+      "glossary_terms": ["CustomerData"],
+      "owners": ["urn:li:corpGroup:support-ops"],
+      "domain": "Customer",
+      "tier": "Tier2",
+      "query_count": 0,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.dim_customers,PROD)",
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.customer_ltv,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,retention_cohorts)",
+      "type": "dashboard",
+      "name": "Retention Cohorts",
+      "platform": "looker",
+      "description": "Cohort retention curves used by the growth team.",
+      "tags": [],
+      "glossary_terms": [],
+      "owners": ["urn:li:corpGroup:growth"],
+      "domain": "Marketing",
+      "tier": "Tier2",
+      "query_count": 0,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.customer_ltv,PROD)"
+      ]
+    },
+    {
+      "urn": "urn:li:chart:(looker,revenue_by_region)",
+      "type": "chart",
+      "name": "Revenue by Region",
+      "platform": "looker",
+      "description": "Chart embedded in the executive dashboard.",
+      "tags": [],
+      "glossary_terms": ["Revenue"],
+      "owners": ["urn:li:corpGroup:finance-analytics"],
+      "domain": "Finance",
+      "tier": "Tier2",
+      "query_count": 0,
+      "upstreams": [
+        "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.reporting.revenue_daily,PROD)"
+      ]
+    }
+  ],
+  "field_lineage": [
+    {
+      "upstream": "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD),email)",
+      "downstream": "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD),email)"
+    },
+    {
+      "upstream": "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD),email)",
+      "downstream": "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.dim_customers,PROD),email_hash)"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+# Normalise line endings in the repository to LF.
+#
+# Development happens on Windows but reviewers will clone on macOS and Linux.
+# Without this, CRLF endings get committed and every file reads as modified on
+# the other platform - and the YAML policy packs, which are the part a reviewer
+# is most likely to open and edit, are exactly where that noise is least
+# welcome.
+* text=auto eol=lf
+
+# Keep sample outputs byte-for-byte as generated, so they match what running
+# the tool actually produces.
+examples/** -text

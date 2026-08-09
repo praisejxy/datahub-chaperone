@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Chaperone's own runtime output. The audit log is a record of a live session:
+# it belongs on the machine that produced it, not in version control.
+#
+# Anchored with a leading slash on purpose. Bare `decisions.jsonl` matches at
+# any depth, which silently excluded examples/decisions.jsonl - the curated
+# sample output the README points reviewers at.
+/.chaperone/
+/decisions.jsonl
+/proposals.jsonl
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

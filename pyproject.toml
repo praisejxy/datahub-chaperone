@@ -1,0 +1,71 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "datahub-chaperone"
+version = "0.1.0"
+description = "A governance proxy that makes AI agents accountable citizens of the DataHub context graph."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "DataHub Chaperone contributors" }]
+keywords = ["datahub", "mcp", "ai-agents", "data-governance", "lineage"]
+classifiers = [
+  # No License classifier: PEP 639 disallows pairing one with `license = "Apache-2.0"`.
+  "Programming Language :: Python :: 3",
+  "Topic :: Database",
+]
+dependencies = [
+  "pydantic>=2.0",
+  "pyyaml>=6.0",
+  "click>=8.0",
+  "rich>=13.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/praisejxy/datahub-chaperone"
+Source = "https://github.com/praisejxy/datahub-chaperone"
+Issues = "https://github.com/praisejxy/datahub-chaperone/issues"
+
+[project.optional-dependencies]# Talking to a live DataHub instance (writeback of agent entities + lineage).
+datahub = ["acryl-datahub>=1.7.0"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.6"]
+
+[project.scripts]
+chaperone = "chaperone.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chaperone"]
+
+[tool.hatch.build]
+# Policy packs and the offline fixture graph must ship inside the wheel.
+# (See docs/upstream-contributions.md - omitting package data like this is
+# exactly the bug we found and fixed in acryl-datahub 1.7.0.)
+include = [
+  "src/chaperone/**/*.py",
+  "src/chaperone/policies/*.yaml",
+  "src/chaperone/fixtures/*.json",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# DataHub urns are long, opaque, and must be written literally to be correct.
+# Wrapping them across lines hurts readability and invites transcription errors,
+# so the line-length rule is relaxed only where the length is a urn.
+"src/chaperone/scenarios.py" = ["E501"]
+"tests/*" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["chaperone"]

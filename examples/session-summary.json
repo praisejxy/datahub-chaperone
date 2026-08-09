@@ -1,0 +1,28 @@
+{
+  "session": "ecd8c39ddb16",
+  "agent": "catalog-steward-agent",
+  "total_calls": 12,
+  "verdicts": {
+    "allow": 3,
+    "redact": 3,
+    "review": 4,
+    "deny": 2
+  },
+  "assets_read": [
+    "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)"
+  ],
+  "assets_written": [
+    "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)"
+  ],
+  "assets_blocked": [
+    "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.dim_customers,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.marts.fct_orders,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.support_tickets,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.legacy.orders_snapshot_2023,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.marts.dim_customer,PROD)"
+  ],
+  "proposals": 4
+}
