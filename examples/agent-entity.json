@@ -1,0 +1,78 @@
+[
+  {
+    "entityUrn": "urn:li:aiAgent:catalog-steward-agent",
+    "aspectName": "aiAgentInfo",
+    "aspect": {
+      "name": "Catalog Steward Agent",
+      "description": "Governed by Chaperone 0.1.0. Session 090e5d105f2a: 12 tool calls, 4 proposal(s) raised.",
+      "source": {
+        "type": "EXTERNAL"
+      },
+      "created": {
+        "time": 1786273687030,
+        "actor": "urn:li:corpuser:datahub"
+      },
+      "lastModified": {
+        "time": 1786273687030,
+        "actor": "urn:li:corpuser:datahub"
+      }
+    }
+  },
+  {
+    "entityUrn": "urn:li:aiAgent:catalog-steward-agent",
+    "aspectName": "aiAgentDependencies",
+    "aspect": {
+      "skills": [
+        "urn:li:agentSkill:documentation",
+        "urn:li:agentSkill:classification",
+        "urn:li:agentSkill:lineage-analysis"
+      ]
+    }
+  },
+  {
+    "entityUrn": "urn:li:aiAgent:catalog-steward-agent",
+    "aspectName": "upstreamLineage",
+    "aspect": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "time": 1786273687030,
+            "actor": "urn:li:corpuser:datahub"
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.staging.stg_customers,PROD)",
+          "type": "COPY"
+        },
+        {
+          "auditStamp": {
+            "time": 1786273687030,
+            "actor": "urn:li:corpuser:datahub"
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.customers,PROD)",
+          "type": "COPY"
+        },
+        {
+          "auditStamp": {
+            "time": 1786273687030,
+            "actor": "urn:li:corpuser:datahub"
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,ecommerce.public.order_items,PROD)",
+          "type": "COPY"
+        }
+      ]
+    }
+  },
+  {
+    "entityUrn": "urn:li:aiAgent:catalog-steward-agent",
+    "aspectName": "dataPlatformInstance",
+    "aspect": {
+      "platform": "urn:li:dataPlatform:mcp"
+    }
+  },
+  {
+    "entityUrn": "urn:li:aiAgent:catalog-steward-agent",
+    "aspectName": "status",
+    "aspect": {
+      "removed": false
+    }
+  }
+]

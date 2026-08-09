@@ -66,6 +66,16 @@ Replay a full agent session and see every decision:
 chaperone demo
 ```
 
+Every session ends by contributing back to the graph. The `aiAgent` entity and
+its lineage are built even with no DataHub instance configured, so you can read
+exactly what would be written:
+
+```bash
+chaperone demo --write-examples examples   # writes examples/agent-entity.json
+```
+
+With `DATAHUB_GMS_URL` set, the same payload is emitted for real.
+
 ## Connecting a real DataHub
 
 Chaperone uses DataHub's own environment conventions. If the DataHub CLI works on your machine, Chaperone will too:
@@ -120,7 +130,7 @@ Your agent sees the same DataHub tools it always did. The difference is that the
 | `src/chaperone/models.py` | Core vocabulary: `AssetContext`, `ToolCall`, `Decision` |
 | `src/chaperone/graph/` | Context providers — offline fixture graph and live GMS |
 | `src/chaperone/policies/` | Shipped policy packs (YAML) |
-| `examples/` | Sample outputs: decision logs, generated proposals, agent entities |
+| `examples/` | Sample outputs: decision log, generated proposals, the `aiAgent` entity payload |
 | `docs/upstream-contributions.md` | Bugs found in DataHub and the fixes submitted |
 
 ## License

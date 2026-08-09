@@ -172,6 +172,72 @@ def _valid_dataset_urns(urns: list[str]) -> list[str]:
     return kept
 
 
+def build_agent_entity(
+    agent_id: str,
+    name: str,
+    description: str,
+    consumed_datasets: list[str],
+    owners: list[str] | None = None,
+    skills: list[str] | None = None,
+    platform: str = "mcp",
+) -> Any | None:
+    """Build the ``aiAgent`` entity for a session, without needing a connection.
+
+    Kept separate from :meth:`DataHubWriteback.register_agent` so the payload can
+    be produced and inspected offline. Emitting requires a GMS; *constructing*
+    does not, and a reviewer with no DataHub instance should still be able to see
+    exactly what Chaperone would write into the graph.
+
+    Returns ``None`` when the entity cannot be built - most often because
+    ``acryl-datahub`` is not installed, which is a supported configuration: the
+    SDK is an optional dependency and the policy engine must run without it.
+    """
+    try:
+        from datahub.api.entities.agent.agent import Agent
+
+        return Agent(
+            id=agent_id,
+            name=name,
+            description=description,
+            # The SDK validates these as urns, not names. Coercing here rather
+            # than asking callers to know the urn grammar - and because the
+            # alternative is a validation error swallowed by the caller's
+            # handler, which would report success and write nothing.
+            skills=[_skill_urn(s) for s in (skills or [])],
+            consumes_datasets=_valid_dataset_urns(consumed_datasets),
+            owners=list(owners or []),
+            platform=platform,
+        )
+    except ImportError:
+        logger.info("acryl-datahub not installed; agent entity not built")
+        return None
+    except Exception as exc:
+        logger.warning("agent entity build failed: %s", exc)
+        return None
+
+
+def agent_entity_payload(agent: Any | None) -> list[dict[str, Any]]:
+    """Render an ``Agent``'s metadata change proposals as plain JSON.
+
+    This is the writeback made inspectable: the same aspects that would be sent
+    to GMS, as data a person can read in a diff or a sample-output file. A
+    ``None`` agent (no SDK installed) renders as an empty payload.
+    """
+    payload: list[dict[str, Any]] = []
+    if agent is None:
+        return payload
+    for mcp in agent.generate_mcp():
+        aspect = getattr(mcp, "aspect", None)
+        payload.append(
+            {
+                "entityUrn": mcp.entityUrn,
+                "aspectName": mcp.aspectName,
+                "aspect": aspect.to_obj() if hasattr(aspect, "to_obj") else aspect,
+            }
+        )
+    return payload
+
+
 class DataHubWriteback:
     """Publishes Chaperone's findings into a live DataHub instance.
 
@@ -216,19 +282,13 @@ class DataHubWriteback:
             logger.info("no DATAHUB_GMS_URL set; skipping agent registration")
             return None
         try:
-            from datahub.api.entities.agent.agent import Agent
-
-            agent = Agent(
-                id=agent_id,
+            agent = build_agent_entity(
+                agent_id=agent_id,
                 name=name,
                 description=description,
-                # The SDK validates these as urns, not names. Coercing here
-                # rather than asking callers to know the urn grammar - and
-                # because the alternative is a validation error swallowed by the
-                # handler below, which would report success and write nothing.
-                skills=[_skill_urn(s) for s in (skills or [])],
-                consumes_datasets=_valid_dataset_urns(consumed_datasets),
-                owners=list(owners or []),
+                consumed_datasets=consumed_datasets,
+                owners=owners,
+                skills=skills,
                 platform=platform,
             )
             for mcp in agent.generate_mcp():

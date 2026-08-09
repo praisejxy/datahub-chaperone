@@ -20,7 +20,12 @@ from rich.panel import Panel
 from rich.table import Table
 
 from chaperone import __version__
-from chaperone.audit import AuditLog, DataHubWriteback
+from chaperone.audit import (
+    AuditLog,
+    DataHubWriteback,
+    agent_entity_payload,
+    build_agent_entity,
+)
 from chaperone.graph import build_provider
 from chaperone.models import Decision, ToolCall, Verdict
 from chaperone.policy import Policy, PolicyEngine
@@ -64,6 +69,70 @@ def _render(decision: Decision) -> None:
         f"[dim]{decision.elapsed_ms:.2f} ms · {len(decision.contexts)} asset(s) inspected[/]"
     )
     console.print(Panel("\n".join(body), border_style=style.split()[-1], expand=False))
+
+
+AGENT_SKILLS = ["documentation", "classification", "lineage-analysis"]
+
+
+def _writeback(audit: AuditLog, agent_id: str) -> list[dict]:
+    """Contribute the session back to the graph, and report what was written.
+
+    Runs at the end of every session, live or offline. With a GMS configured the
+    ``aiAgent`` entity and its lineage are emitted and blocked assets are tagged;
+    without one, the payload is still built and shown, so the contribution is
+    inspectable rather than merely claimed.
+    """
+    consumed = audit.consumed_datasets()
+    blocked = audit.summary()["assets_blocked"]
+    writeback = DataHubWriteback()
+
+    agent = build_agent_entity(
+        agent_id=agent_id,
+        name=agent_id.replace("-", " ").title(),
+        description=(
+            f"Governed by Chaperone {__version__}. Session {audit.session_id}: "
+            f"{len(audit.decisions)} tool calls, {len(audit.proposals)} proposal(s) raised."
+        ),
+        consumed_datasets=consumed,
+        skills=AGENT_SKILLS,
+    )
+    payload = agent_entity_payload(agent)
+
+    lines = [
+        f"aiAgent   : [cyan]{agent.urn if agent else f'urn:li:aiAgent:{agent_id}'}[/]",
+        f"lineage   : {len(consumed)} dataset(s) attached as upstreams",
+        f"proposals : {len(audit.proposals)}",
+        f"blocked   : {len(blocked)} asset(s) to tag AgentBlocked",
+    ]
+    if agent is None:
+        lines.append(
+            "[yellow]acryl-datahub not installed - "
+            r"pip install 'datahub-chaperone\[datahub]' to emit[/]"
+        )
+        console.print(Panel("\n".join(lines), title="writeback to DataHub",
+                            border_style="cyan", expand=False))
+        return payload
+
+    if writeback.available:
+        urn = writeback.register_agent(
+            agent_id=agent_id,
+            name=agent.name,
+            description=agent.description,
+            consumed_datasets=consumed,
+            skills=AGENT_SKILLS,
+        )
+        for urn_blocked in blocked:
+            writeback.annotate_blocked_asset(urn_blocked, "blocked by Chaperone policy")
+        lines.append(
+            f"[green]emitted to {writeback.server}[/]" if urn
+            else "[yellow]emit failed; see --verbose[/]"
+        )
+    else:
+        lines.append("[dim]no DATAHUB_GMS_URL set - payload built, not emitted[/]")
+
+    console.print(Panel("\n".join(lines), title="writeback to DataHub",
+                        border_style="cyan", expand=False))
+    return payload
 
 
 # -- shared options -------------------------------------------------------
@@ -145,6 +214,7 @@ def serve(offline, fixture, policy_files, pack, upstream, agent_id, audit_log, d
     summary = audit.summary()
     console.print(Panel(json.dumps(summary, indent=2), title="session summary",
                         border_style="cyan", expand=False))
+    _writeback(audit, agent_id)
 
 
 @main.command()
@@ -313,6 +383,7 @@ def demo(offline, fixture, policy_files, pack, scenario, write_examples, pace) -
     table.add_row("proposals raised", str(summary["proposals"]))
     console.print(table)
 
+    payload = _writeback(audit, "catalog-steward-agent")
     audit.close()
 
     if write_examples:
@@ -320,6 +391,7 @@ def demo(offline, fixture, policy_files, pack, scenario, write_examples, pace) -
         out.mkdir(parents=True, exist_ok=True)
         (out / "session-summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
         (out / "proposals.json").write_text(json.dumps(audit.proposals, indent=2), encoding="utf-8")
+        (out / "agent-entity.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
         console.print(f"[green]wrote examples to {out}[/]")
 
 
