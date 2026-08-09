@@ -29,9 +29,10 @@ Homepage = "https://github.com/praisejxy/datahub-chaperone"
 Source = "https://github.com/praisejxy/datahub-chaperone"
 Issues = "https://github.com/praisejxy/datahub-chaperone/issues"
 
-[project.optional-dependencies]# Talking to a live DataHub instance (writeback of agent entities + lineage).
+[project.optional-dependencies]
+# Talking to a live DataHub instance (writeback of agent entities + lineage).
 datahub = ["acryl-datahub>=1.7.0"]
-dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "ruff>=0.6"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]
 chaperone = "chaperone.cli:main"
@@ -52,7 +53,6 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
