@@ -159,58 +159,48 @@ record the screen once with no microphone, then lay one over the other.
 ### 1. Paste this into a TTS tool, download the audio
 
 It is one continuous block on purpose — no shot markers, no stage directions.
-About 2 minutes 15 seconds at a normal speaking rate.
+About 1 minute 20 seconds at a normal speaking rate, which leaves room to hold
+on the summary and writeback panels at the end.
 
-> The DataHub MCP server now ships mutation tools. Agents don't just read the
-> catalog anymore. They can retag it, redescribe it, reassign ownership.
+> The DataHub MCP server now ships mutation tools, so agents don't just read the
+> catalog anymore — they can retag it, redescribe it, reassign ownership.
 >
 > One agent mislabelling one column is an inconvenience. An agent looping over
-> four hundred tables at machine speed is an incident, and the catalog is
-> exactly where your governance decisions live.
+> four hundred tables at machine speed is an incident. Today the only mitigation
+> is a line in a prompt: be careful with PII. That is not a control. It is a
+> suggestion, and it degrades as the context window fills.
 >
-> Today the mitigation is a line in a prompt: be careful with PII. That is not a
-> control. It is a suggestion, and it degrades as the context window fills.
+> Chaperone is a proxy between the agent and DataHub. Every tool call is checked
+> against the catalog's own metadata — tags, tiers, owners, lineage — before it
+> reaches DataHub. The rules are already in the catalog. Chaperone enforces them
+> instead of restating them in a prompt and hoping.
 >
-> Chaperone is a proxy that sits between the agent and DataHub. Every tool call
-> is checked against the catalog's own metadata — tags, tiers, owners, lineage —
-> before it reaches DataHub. The governance rules are already in the catalog.
-> Chaperone reads them out and enforces them, instead of restating them in a
-> prompt and hoping.
+> Here is an agent working through a real catalog slice.
 >
-> Here is a documentation agent working through a real catalog slice.
+> A search: allowed. Documenting a low-risk leaf table: allowed.
 >
-> A search: allowed. Documenting order items, a low-risk leaf table: allowed.
-> Chaperone stays out of the way.
+> Reading the customers table: redacted. The agent still gets the schema and
+> lineage it needs to keep working — only the sensitive values are stripped.
+> Allow or deny would have either leaked the data or stopped the agent dead.
 >
-> Reading the customers table: redacted. And this is the interesting part. The
-> agent still gets the schema and lineage it needs to keep working. Only the
-> sensitive values are stripped. Allow or deny would have either leaked the data
-> or stopped the agent dead.
+> Editing fact orders: held for review. It is Tier 1 and feeds a deployed model
+> two hops out. The edit is not thrown away — it becomes a proposal for a human
+> owner.
 >
-> Editing fact orders: held for review. It is Tier 1, and it feeds a feature
-> table one hop out and a deployed model two hops out. The agent's edit is not
-> thrown away. It becomes a proposal for a human owner.
+> An unowned PII table: denied. And the refusal cites the catalog, not permission
+> denied. An agent can act on that. That is the difference between a guardrail
+> and a wall.
 >
-> An unowned table tagged PII and Confidential: denied. And the refusal cites
-> the catalog. Not permission denied, but: this asset is tagged PII, and changing
-> sensitive metadata is reserved for its owners. An agent can act on that. That
-> is the difference between a guardrail and a wall.
+> The last call is the interesting one. The agent hallucinated a URN. That asset
+> does not exist, so Chaperone refuses to create metadata against it.
 >
-> The last call is the interesting one. The agent hallucinated a URN — dim
-> customer, singular. That asset does not exist, so Chaperone refuses to create
-> metadata against an unverifiable asset.
->
-> And this is the part that makes the catalog better, not just safer. At the end
-> of every session Chaperone registers the agent as an aiAgent entity, the type
-> new in acryl-datahub 1.7.0, and attaches every dataset it touched as upstream
+> And this is what makes the catalog better, not just safer. Chaperone registers
+> the agent as an aiAgent entity and attaches every dataset it touched as upstream
 > lineage. So DataHub can answer a question it could not before: which agents are
-> operating on this table? Chaperone doesn't just read the context graph. It
+> operating on this table? Chaperone doesn't just read the context graph — it
 > contributes back to it.
 >
 > Apache 2.0, seventy-two tests, runs offline with no DataHub instance needed.
-> Building it also turned up a packaging bug in acryl-datahub 1.7.0 that breaks
-> the datapack command for every non-interactive caller. Root cause and the
-> one-line fix are in the repo.
 
 Free tools that sound fine: ElevenLabs' free tier, TTSMaker, or Edge's built-in
 Read Aloud captured as system audio.
